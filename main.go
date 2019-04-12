@@ -2,55 +2,46 @@ package main
 
 import (
 	"flag"
+	"fmt"
 	"net/http"
 	"os"
-	"strings"
 
-	"github.com/go-kit/kit/log"
-	"github.com/go-kit/kit/log/level"
+	"github.com/logentries_exporter/exporter"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
+	"github.com/prometheus/common/log"
 	"github.com/prometheus/common/version"
 )
 
-func init() {
-	prometheus.MustRegister(version.NewCollector("logentries_exporter"))
-}
+// declare variables for logentries metrics
+var (
+	listeningAddress = flag.String("telemetry.address", ":9234", "Address on which to expose metrics.")
+	metricsPath      = flag.String("telemetry.endpoint", "/metrics", "Path under which to expose metric.")
+	logentriesID     = flag.String("logentriesID", "", "ID Account to logentries metrics")
+	apikey           = flag.String("apikey", "", "APIKEY to connect logentries metrics")
+	showVersion      = flag.Bool("version", false, "Print version information.")
+)
 
 func main() {
-	var (
-		listenAddress = flag.String("web.listen-address", ":9237", "Address to listen on for web interface and telemetry.")
-		metricsPath   = flag.String("web.telemetry-path", "/metrics", "Path under which to expose metrics.")
-		logLevel      = flag.String("log.level", "INFO", "Log level.")
-	)
+	log.Infoln("Starting logentries_exporter", version.Info())
 
 	flag.Parse()
 
-	// init logger
-	logger := log.NewJSONLogger(os.Stdout)
-	logger = log.With(logger,
-		"ts", log.DefaultTimestampUTC,
-		"caller", log.DefaultCaller,
-	)
-	// set the allowed log level filter
-	switch strings.ToLower(*logLevel) {
-	case "debug":
-		logger = level.NewFilter(logger, level.AllowDebug())
-	case "info":
-		logger = level.NewFilter(logger, level.AllowInfo())
-	case "warn":
-		logger = level.NewFilter(logger, level.AllowWarn())
-	case "error":
-		logger = level.NewFilter(logger, level.AllowError())
-	default:
-		logger = level.NewFilter(logger, level.AllowAll())
+	if *logentriesID == "" && *apikey == "" {
+		log.Fatal("Cannot specify both logentriesID and apikey")
 	}
 
-	logger.Log("msg", "Starting logentries_exporter", "version_info", version.Info(), "build_context", version.BuildContext())
+	if *showVersion {
+		fmt.Fprintln(os.Stdout, version.Print("logentries_exporter"))
+		os.Exit(0)
+	}
+
+	exporter := exporter.AccountGetUsage(*logentriesID, *apikey)
+	prometheus.MustRegister(exporter)
+	prometheus.MustRegister(version.NewCollector("logentries_exporter"))
 
 	// setup and start webserver
 	http.Handle(*metricsPath, promhttp.Handler())
-	http.HandleFunc("/healthz", func(w http.ResponseWriter, r *http.Request) { http.Error(w, "OK", http.StatusOK) })
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		w.Write([]byte(`<html>
 		<head><title>Logentries Exporter</title></head>
@@ -61,10 +52,8 @@ func main() {
 		</html>
 		`))
 	})
+	log.Infoln("Build context", version.BuildContext())
 
-	level.Info(logger).Log("msg", "Listening", "listenAddress", *listenAddress)
-	if err := http.ListenAndServe(*listenAddress, nil); err != nil {
-		level.Error(logger).Log("msg", "Error starting HTTP server:", "err", err)
-		os.Exit(1)
-	}
+	log.Infof("Starting Server in: %s", *listeningAddress)
+	log.Fatal(http.ListenAndServe(*listeningAddress, nil))
 }
