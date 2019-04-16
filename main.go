@@ -13,6 +13,10 @@ import (
 	"github.com/prometheus/common/version"
 )
 
+const (
+	namespace = "logentries" //for Prometheus metrics.
+)
+
 // declare variables for logentries metrics
 var (
 	listeningAddress = flag.String("telemetry.address", ":9234", "Address on which to expose metrics.")
@@ -29,15 +33,22 @@ func main() {
 
 	if *logentriesID == "" && *apikey == "" {
 		log.Fatal("Cannot specify both logentriesID and apikey")
+		os.Exit(1)
 	}
 
 	if *showVersion {
 		fmt.Fprintln(os.Stdout, version.Print("logentries_exporter"))
-		os.Exit(0)
+		os.Exit(1)
 	}
 
-	exporter := exporter.AccountGetUsage(*logentriesID, *apikey)
-	prometheus.MustRegister(exporter)
+	// Scraper AccountUsage
+	accountUsage := exporter.AccountGetUsage(*logentriesID, *apikey)
+	prometheus.MustRegister(accountUsage)
+
+	// Scraper LogGetUsage
+	logsUsage := exporter.LogGetUsage(*logentriesID, *apikey)
+	prometheus.MustRegister(logsUsage)
+
 	prometheus.MustRegister(version.NewCollector("logentries_exporter"))
 
 	// setup and start webserver
@@ -54,6 +65,6 @@ func main() {
 	})
 	log.Infoln("Build context", version.BuildContext())
 
-	log.Infof("Starting Server in: %s", *listeningAddress)
+	log.Infoln("Starting Server in: ", *listeningAddress)
 	log.Fatal(http.ListenAndServe(*listeningAddress, nil))
 }

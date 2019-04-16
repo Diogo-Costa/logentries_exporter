@@ -4,20 +4,27 @@ import (
 	"fmt"
 	"net/http"
 	"net/url"
+	"sync"
 	"time"
 
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/common/log"
 
 	"encoding/json"
-	"sync"
 )
 
 const (
 	namespace = "logentries" //for Prometheus metrics.
 )
 
-type Exporter struct {
+// Structs
+type jsonData struct {
+	Id          string `json:"id"`
+	Name        string `json:"name"`
+	PeriodUsage int    `json:"period_usage"`
+}
+
+type AccountStruct struct {
 	URI    string
 	APIKEY string
 	mutex  sync.Mutex
@@ -25,13 +32,13 @@ type Exporter struct {
 
 	up          *prometheus.Desc
 	Id          *prometheus.Desc
-	name        *prometheus.Desc
+	accountName *prometheus.Desc
 	periodUsage *prometheus.Desc
 }
 
 // NewExporter returns an initialized Exporter.
-func AccountGetUsage(uri string, apikey string) *Exporter {
-	return &Exporter{
+func AccountGetUsage(uri string, apikey string) *AccountStruct {
+	return &AccountStruct{
 		URI:    uri,
 		APIKEY: apikey,
 		up: prometheus.NewDesc(
@@ -39,8 +46,8 @@ func AccountGetUsage(uri string, apikey string) *Exporter {
 			"Could logentries be reached",
 			nil,
 			nil),
-		name: prometheus.NewDesc(
-			prometheus.BuildFQName(namespace, "", "name"),
+		accountName: prometheus.NewDesc(
+			prometheus.BuildFQName(namespace, "", "accountName"),
 			"Account Name",
 			[]string{"account"},
 			nil),
@@ -55,28 +62,21 @@ func AccountGetUsage(uri string, apikey string) *Exporter {
 
 // Describe describes all the metrics ever exported by the logentries exporter. It
 // implements prometheus.Collector.
-func (e *Exporter) Describe(ch chan<- *prometheus.Desc) {
-	ch <- e.name
+func (e *AccountStruct) Describe(ch chan<- *prometheus.Desc) {
+	ch <- e.accountName
 	ch <- e.periodUsage
-}
-
-// json data structure for logentries
-type jsonData struct {
-	Id          string `json:"id"`
-	Name        string `json:"name"`
-	PeriodUsage int    `json:"period_usage"`
 }
 
 // Collect fetches the stats from configured location and delivers them
 // as Prometheus metrics.
-// It implements prometheus.Collector.
-func (e *Exporter) collect(ch chan<- prometheus.Metric) error {
-	current_time := time.Now().Local().Format("2006-01-02")
-	log.Infoln("Date", current_time)
+func (e *AccountStruct) collect(ch chan<- prometheus.Metric) error {
+	// Get current date
+	currentTime := time.Now().Local().Format("2006-01-02")
+	log.Infoln("Date", currentTime)
 
 	safeAccountID := url.QueryEscape(e.URI)
 	// Build the request
-	url := fmt.Sprintf("https://rest.logentries.com/usage/accounts/%s?from=%s&to=%s", safeAccountID, current_time, current_time)
+	url := fmt.Sprintf("https://rest.logentries.com/usage/accounts/%s?from=%s&to=%s", safeAccountID, currentTime, currentTime)
 	req, err := http.NewRequest("GET", url, nil)
 	req.Header.Set("x-api-key", e.APIKEY)
 	if err != nil {
@@ -101,7 +101,7 @@ func (e *Exporter) collect(ch chan<- prometheus.Metric) error {
 // Collect fetches the stats from configured logentries location and delivers them
 // as Prometheus metrics.
 // It implements prometheus.Collector.
-func (e *Exporter) Collect(ch chan<- prometheus.Metric) {
+func (e *AccountStruct) Collect(ch chan<- prometheus.Metric) {
 	e.mutex.Lock() // To protect metrics from concurrent collects.
 	defer e.mutex.Unlock()
 	if err := e.collect(ch); err != nil {
