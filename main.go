@@ -2,45 +2,40 @@ package main
 
 import (
 	"flag"
-	"fmt"
 	"net/http"
-	"os"
 
 	"github.com/logentries_exporter/exporter"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
-	"github.com/prometheus/common/log"
 	"github.com/prometheus/common/version"
-)
 
-const (
-	namespace = "logentries" //for Prometheus metrics.
+	log "github.com/sirupsen/logrus"
 )
 
 // declare variables for logentries metrics
 var (
 	listeningAddress = flag.String("telemetry.address", ":9234", "Address on which to expose metrics.")
 	metricsPath      = flag.String("telemetry.endpoint", "/metrics", "Path under which to expose metric.")
-	logentriesID     = flag.String("logentriesID", "", "ID Account to logentries metrics")
-	apikey           = flag.String("apikey", "", "APIKEY to connect logentries metrics")
-	showVersion      = flag.Bool("version", false, "Print version information.")
+	logentriesID     = flag.String("logentriesID", "", "ID Account to logentries metrics.")
+	apikey           = flag.String("apikey", "", "APIKEY to connect logentries metrics.")
+	isDebug          = flag.Bool("debug", false, "Output verbose debug information.")
 )
 
 func main() {
-	log.Infoln("Starting logentries_exporter", version.Info())
-
 	flag.Parse()
+
+	if *isDebug {
+		log.SetLevel(log.DebugLevel)
+		log.Debugln("Enabling debug output")
+	} else {
+		log.SetLevel(log.InfoLevel)
+	}
 
 	if *logentriesID == "" && *apikey == "" {
 		log.Fatal("Cannot specify both logentriesID and apikey")
-		os.Exit(1)
 	}
 
-	if *showVersion {
-		fmt.Fprintln(os.Stdout, version.Print("logentries_exporter"))
-		os.Exit(1)
-	}
-
+	log.Infoln("Starting logentries_exporter", version.Info())
 	// Scraper AccountUsage
 	accountUsage := exporter.AccountGetUsage(*logentriesID, *apikey)
 	prometheus.MustRegister(accountUsage)
@@ -65,6 +60,6 @@ func main() {
 	})
 	log.Infoln("Build context", version.BuildContext())
 
-	log.Infoln("Starting Server in: ", *listeningAddress)
+	log.Infoln("Starting Server in port", *listeningAddress)
 	log.Fatal(http.ListenAndServe(*listeningAddress, nil))
 }

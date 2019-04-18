@@ -14,7 +14,7 @@ import (
 	"encoding/json"
 )
 
-// Structs
+// Structs to getListLogs
 type ListLogs struct {
 	Logs []struct {
 		LogsetsInfo []struct {
@@ -85,7 +85,7 @@ func LogGetUsage(uri string, apikey string) *LogStruct {
 		logUsage: prometheus.NewDesc(
 			prometheus.BuildFQName(namespace, "", "log_usage_daily"),
 			"Log Usage Size in bytes",
-			[]string{"LogName", "LogSet"},
+			[]string{"logname", "logset", "logid"},
 			nil),
 		client: &http.Client{},
 	}
@@ -113,9 +113,9 @@ func (e *LogStruct) collect(ch chan<- prometheus.Metric) error {
 		log.Fatal("Do: ", err)
 	}
 	if resp.StatusCode >= 200 && resp.StatusCode <= 299 {
-		fmt.Println("HTTP Status is in the 2xx range")
+		log.Debugln("Status Code:", resp.StatusCode)
 	} else {
-		fmt.Println("Argh! Broken")
+		log.Errorln("Status Code:", resp.StatusCode)
 	}
 	defer resp.Body.Close()
 	var recordLogs ListLogs
@@ -123,11 +123,11 @@ func (e *LogStruct) collect(ch chan<- prometheus.Metric) error {
 		log.Fatal(err)
 	}
 	for rateList, logsList := range recordLogs.Logs {
-		log.Infoln("---------------------- NEW LOOP ----------------------------------")
+		log.Infoln("---------------------- NEW REQUEST LOG ----------------------------------")
 		for _, list := range logsList.LogsetsInfo {
-			log.Infoln("RateLimit:", rateList)
+			log.Debugln("RateLimit:", rateList)
 			// Get current date
-			currentTime := time.Now().Local().AddDate(0, 0, -3).Format("2006-01-02")
+			currentTime := time.Now().Local().AddDate(0, 0, -1).Format("2006-01-02")
 			safeAccountID := url.QueryEscape(e.URI)
 			// Build the request
 			url := fmt.Sprintf("https://rest.logentries.com/usage/accounts/%s/logs/%s/?from=%s&to=%s", safeAccountID, logsList.ID, currentTime, currentTime)
@@ -142,9 +142,9 @@ func (e *LogStruct) collect(ch chan<- prometheus.Metric) error {
 				log.Fatal("Do: ", err)
 			}
 			if resp.StatusCode >= 200 && resp.StatusCode <= 299 {
-				fmt.Println("HTTP Status is in the 2xx range")
+				log.Debugln("Status Code:", resp.StatusCode)
 			} else {
-				fmt.Println("Argh! Broken", resp.StatusCode)
+				log.Errorln("Status Code:", resp.StatusCode)
 			}
 			defer resp.Body.Close()
 
@@ -159,19 +159,17 @@ func (e *LogStruct) collect(ch chan<- prometheus.Metric) error {
 				for _, logs := range record.Usage.DailyUsage {
 					// Convert string in float64
 					logSize, _ := strconv.ParseFloat(logs.LogUsage, 64)
-					log.Infoln("SIZE:", logSize)
-					ch <- prometheus.MustNewConstMetric(e.logUsage, prometheus.GaugeValue, float64(logSize), logsList.Name, list.Name)
+					log.Debugln("SIZE:", logSize)
+					ch <- prometheus.MustNewConstMetric(e.logUsage, prometheus.GaugeValue, float64(logSize), logsList.Name, list.Name, logsList.ID)
 				}
 			} else {
-				log.Infoln("DEBUG:", record.Usage.DailyUsage)
-				ch <- prometheus.MustNewConstMetric(e.logUsage, prometheus.GaugeValue, float64(0), logsList.Name, list.Name)
+				log.Debugln("DEBUG:", record.Usage.DailyUsage)
+				ch <- prometheus.MustNewConstMetric(e.logUsage, prometheus.GaugeValue, float64(0), logsList.Name, list.Name, logsList.ID)
 			}
-			if rateList == 300 {
-				time.Sleep(180 * time.Second)
-			} else if rateList == 600 {
-				time.Sleep(180 * time.Second)
-			} else if rateList == 900 {
-				time.Sleep(180 * time.Second)
+			if rateList == 400 {
+				time.Sleep(240 * time.Second)
+			} else if rateList == 800 {
+				time.Sleep(240 * time.Second)
 			} else if rateList == 1200 {
 				time.Sleep(180 * time.Second)
 			}

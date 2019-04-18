@@ -72,7 +72,7 @@ func (e *AccountStruct) Describe(ch chan<- *prometheus.Desc) {
 func (e *AccountStruct) collect(ch chan<- prometheus.Metric) error {
 	// Get current date
 	currentTime := time.Now().Local().Format("2006-01-02")
-	log.Infoln("Date", currentTime)
+	log.Debugln("Current Date:", currentTime)
 
 	safeAccountID := url.QueryEscape(e.URI)
 	// Build the request
@@ -86,6 +86,11 @@ func (e *AccountStruct) collect(ch chan<- prometheus.Metric) error {
 	resp, err := client.Do(req)
 	if err != nil {
 		log.Fatal("Do: ", err)
+	}
+	if resp.StatusCode >= 200 && resp.StatusCode <= 299 {
+		log.Debugln("Status Code:", resp.StatusCode)
+	} else {
+		log.Errorln("Status Code:", resp.StatusCode)
 	}
 	defer resp.Body.Close()
 	var record jsonData
