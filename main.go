@@ -14,7 +14,7 @@ import (
 
 // declare variables for logentries metrics
 var (
-	listeningAddress = flag.String("telemetry.address", ":9234", "Address on which to expose metrics.")
+	listeningAddress = flag.String("telemetry.address", ":9578", "Address on which to expose metrics.")
 	metricsPath      = flag.String("telemetry.endpoint", "/metrics", "Path under which to expose metric.")
 	logentriesID     = flag.String("logentriesID", "", "ID Account to logentries metrics.")
 	apikey           = flag.String("apikey", "", "APIKEY to connect logentries metrics.")
