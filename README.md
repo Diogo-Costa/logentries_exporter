@@ -4,7 +4,7 @@ Simple server that scrapes `logentries` metrics endpoint and exports them as Pro
 ## Flags/Arguments
 ```
   --telemetry.address string
-    	Address on which to expose metrics. (default -> ":9234")
+    	Address on which to expose metrics. (default -> ":9578")
   --metricsPath string
       Path under which to expose metrics. (default -> "/metrics")
   --logentriesID string
