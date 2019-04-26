@@ -19,7 +19,7 @@ var (
 	logentriesID     = flag.String("logentriesID", "", "ID Account to logentries metrics.")
 	apikey           = flag.String("apikey", "", "APIKEY to connect logentries metrics.")
 	apiRateLimit     = flag.Int("apiRateLimit", 400, "Logentries Api Rate Limit.")
-	apiWaitRateLimit = flag.Int("apiWaitRateLimit", 240, "Logentries Api wait to recovery rate limit (seconds).")
+	apiWaitRateLimit = flag.Int("apiWaitRateLimit", 300, "Logentries Api wait to recovery rate limit (seconds).")
 	isDebug          = flag.Bool("isDebug", false, "Output verbose debug information.")
 )
 
