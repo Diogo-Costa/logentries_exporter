@@ -18,7 +18,9 @@ var (
 	metricsPath      = flag.String("telemetry.endpoint", "/metrics", "Path under which to expose metric.")
 	logentriesID     = flag.String("logentriesID", "", "ID Account to logentries metrics.")
 	apikey           = flag.String("apikey", "", "APIKEY to connect logentries metrics.")
-	isDebug          = flag.Bool("debug", false, "Output verbose debug information.")
+	apiRateLimit     = flag.Int("apiRateLimit", 400, "Logentries Api Rate Limit.")
+	apiWaitRateLimit = flag.Int("apiWaitRateLimit", 240, "Logentries Api wait to recovery rate limit (seconds).")
+	isDebug          = flag.Bool("isDebug", false, "Output verbose debug information.")
 )
 
 func main() {
@@ -41,7 +43,7 @@ func main() {
 	prometheus.MustRegister(accountUsage)
 
 	// Scraper LogGetUsage
-	logsUsage := exporter.LogGetUsage(*logentriesID, *apikey)
+	logsUsage := exporter.LogGetUsage(*logentriesID, *apikey, *apiRateLimit, *apiWaitRateLimit)
 	prometheus.MustRegister(logsUsage)
 
 	prometheus.MustRegister(version.NewCollector("logentries_exporter"))

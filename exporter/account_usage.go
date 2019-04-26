@@ -8,7 +8,7 @@ import (
 	"time"
 
 	"github.com/prometheus/client_golang/prometheus"
-	"github.com/prometheus/common/log"
+	log "github.com/sirupsen/logrus"
 
 	"encoding/json"
 )
@@ -30,9 +30,7 @@ type AccountStruct struct {
 	mutex  sync.Mutex
 	client *http.Client
 
-	up          *prometheus.Desc
 	Id          *prometheus.Desc
-	accountName *prometheus.Desc
 	periodUsage *prometheus.Desc
 }
 
@@ -41,16 +39,6 @@ func AccountGetUsage(uri string, apikey string) *AccountStruct {
 	return &AccountStruct{
 		URI:    uri,
 		APIKEY: apikey,
-		up: prometheus.NewDesc(
-			prometheus.BuildFQName(namespace, "", "up"),
-			"Could logentries be reached",
-			nil,
-			nil),
-		accountName: prometheus.NewDesc(
-			prometheus.BuildFQName(namespace, "", "accountName"),
-			"Account Name",
-			[]string{"account"},
-			nil),
 		periodUsage: prometheus.NewDesc(
 			prometheus.BuildFQName(namespace, "", "period_usage_daily"),
 			"Account Usage Size in bytes",
@@ -63,13 +51,13 @@ func AccountGetUsage(uri string, apikey string) *AccountStruct {
 // Describe describes all the metrics ever exported by the logentries exporter. It
 // implements prometheus.Collector.
 func (e *AccountStruct) Describe(ch chan<- *prometheus.Desc) {
-	ch <- e.accountName
 	ch <- e.periodUsage
 }
 
 // Collect fetches the stats from configured location and delivers them
 // as Prometheus metrics.
 func (e *AccountStruct) collect(ch chan<- prometheus.Metric) error {
+	log.Debugln("---------------------- SCRAPER ACCOUNT SIZE ----------------------------------")
 	// Get current date
 	currentTime := time.Now().Local().Format("2006-01-02")
 	log.Debugln("Current Date:", currentTime)
@@ -88,9 +76,9 @@ func (e *AccountStruct) collect(ch chan<- prometheus.Metric) error {
 		log.Fatal("Do: ", err)
 	}
 	if resp.StatusCode >= 200 && resp.StatusCode <= 299 {
-		log.Debugln("Status Code:", resp.StatusCode)
+		log.Debugln("Account Status Code:", resp.StatusCode)
 	} else {
-		log.Errorln("Status Code:", resp.StatusCode)
+		log.Errorln("Account Status Code:", resp.StatusCode)
 	}
 	defer resp.Body.Close()
 	var record jsonData

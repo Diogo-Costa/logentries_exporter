@@ -8,10 +8,10 @@ import (
 	"sync"
 	"time"
 
-	"github.com/prometheus/client_golang/prometheus"
-	"github.com/prometheus/common/log"
-
 	"encoding/json"
+
+	"github.com/prometheus/client_golang/prometheus"
+	log "github.com/sirupsen/logrus"
 )
 
 // Structs to getListLogs
@@ -54,38 +54,30 @@ type jsonLog struct {
 }
 
 type LogStruct struct {
-	URI     string
-	APIKEY  string
-	LOGID   string
-	LOGNAME string
-	mutex   sync.Mutex
-	client  *http.Client
+	URI           string
+	APIKEY        string
+	LOGID         string
+	LOGNAME       string
+	RATELIMIT     int
+	WAITRATELIMIT int
+	mutex         sync.Mutex
+	client        *http.Client
 
-	up       *prometheus.Desc
 	ID       *prometheus.Desc
-	logName  *prometheus.Desc
 	logUsage *prometheus.Desc
 }
 
 // LogGetUsage returns an initialized Exporter.
-func LogGetUsage(uri string, apikey string) *LogStruct {
+func LogGetUsage(uri string, apikey string, apiRateLimit int, apiWaitRateLimit int) *LogStruct {
 	return &LogStruct{
-		URI:    uri,
-		APIKEY: apikey,
-		up: prometheus.NewDesc(
-			prometheus.BuildFQName(namespace, "", "up"),
-			"Could logentries be reached",
-			nil,
-			nil),
-		logName: prometheus.NewDesc(
-			prometheus.BuildFQName(namespace, "", "logName"),
-			"Log Name",
-			[]string{"account"},
-			nil),
+		RATELIMIT:     apiRateLimit,
+		WAITRATELIMIT: apiWaitRateLimit,
+		URI:           uri,
+		APIKEY:        apikey,
 		logUsage: prometheus.NewDesc(
 			prometheus.BuildFQName(namespace, "", "log_usage_daily"),
 			"Log Usage Size in bytes",
-			[]string{"logname", "logset", "logid"},
+			[]string{"logname", "logset", "logid", "status_code"},
 			nil),
 		client: &http.Client{},
 	}
@@ -94,13 +86,13 @@ func LogGetUsage(uri string, apikey string) *LogStruct {
 // Describe describes all the metrics ever exported by the logentries exporter. It
 // implements prometheus.Collector.
 func (e *LogStruct) Describe(ch chan<- *prometheus.Desc) {
-	ch <- e.logName
 	ch <- e.logUsage
 }
 
 // Collect fetches the stats from configured location and delivers them
 // as Prometheus metrics.
 func (e *LogStruct) collect(ch chan<- prometheus.Metric) error {
+	log.Debugln("---------------------- SCRAPER LOGSTE's ----------------------------------")
 	urlList := fmt.Sprintf("https://rest.logentries.com/management/logs")
 	req, err := http.NewRequest("GET", urlList, nil)
 	req.Header.Set("x-api-key", e.APIKEY)
@@ -122,10 +114,18 @@ func (e *LogStruct) collect(ch chan<- prometheus.Metric) error {
 	if err := json.NewDecoder(resp.Body).Decode(&recordLogs); err != nil {
 		log.Fatal(err)
 	}
-	for rateList, logsList := range recordLogs.Logs {
-		log.Infoln("---------------------- NEW REQUEST LOG ----------------------------------")
+	rateList := 0
+	withError := 0
+	for _, logsList := range recordLogs.Logs {
+		log.Debugln("---------------------- SCRAPER LOG's SIZE ----------------------------------")
 		for _, list := range logsList.LogsetsInfo {
 			log.Debugln("RateLimit:", rateList)
+			if rateList == e.RATELIMIT {
+				log.Debugln("RATELIMIT Exceed, wait %i to continue", e.WAITRATELIMIT)
+				time.Sleep(time.Duration(e.WAITRATELIMIT) * time.Second)
+				rateList = 0
+			}
+
 			// Get current date
 			currentTime := time.Now().Local().AddDate(0, 0, -1).Format("2006-01-02")
 			safeAccountID := url.QueryEscape(e.URI)
@@ -145,6 +145,7 @@ func (e *LogStruct) collect(ch chan<- prometheus.Metric) error {
 				log.Debugln("Status Code:", resp.StatusCode)
 			} else {
 				log.Errorln("Status Code:", resp.StatusCode)
+				withError++
 			}
 			defer resp.Body.Close()
 
@@ -160,23 +161,19 @@ func (e *LogStruct) collect(ch chan<- prometheus.Metric) error {
 					// Convert string in float64
 					logSize, _ := strconv.ParseFloat(logs.LogUsage, 64)
 					log.Debugln("SIZE:", logSize)
-					ch <- prometheus.MustNewConstMetric(e.logUsage, prometheus.GaugeValue, float64(logSize), logsList.Name, list.Name, logsList.ID)
+					ch <- prometheus.MustNewConstMetric(e.logUsage, prometheus.GaugeValue, float64(logSize), logsList.Name, list.Name, logsList.ID, strconv.Itoa(resp.StatusCode))
 				}
 			} else {
 				log.Debugln("DEBUG:", record.Usage.DailyUsage)
-				ch <- prometheus.MustNewConstMetric(e.logUsage, prometheus.GaugeValue, float64(0), logsList.Name, list.Name, logsList.ID)
-			}
-			if rateList == 400 {
-				time.Sleep(240 * time.Second)
-			} else if rateList == 800 {
-				time.Sleep(240 * time.Second)
-			} else if rateList == 1200 {
-				time.Sleep(180 * time.Second)
+				ch <- prometheus.MustNewConstMetric(e.logUsage, prometheus.GaugeValue, float64(0), logsList.Name, list.Name, logsList.ID, strconv.Itoa(resp.StatusCode))
 			}
 			rateList++
 		}
 	}
+
+	log.Debugln("Scraper Logs with error:", withError)
 	return nil
+
 }
 
 // Collect fetches the stats from configured logentries location and delivers them
