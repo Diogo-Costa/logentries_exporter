@@ -25,20 +25,22 @@ type jsonData struct {
 }
 
 type AccountStruct struct {
-	URI    string
-	APIKEY string
-	mutex  sync.Mutex
-	client *http.Client
+	URI     string
+	APIKEY  string
+	SERVICE string
+	mutex   sync.Mutex
+	client  *http.Client
 
 	Id          *prometheus.Desc
 	periodUsage *prometheus.Desc
 }
 
 // NewExporter returns an initialized Exporter.
-func AccountGetUsage(uri string, apikey string) *AccountStruct {
+func AccountGetUsage(uri string, apikey string, service string) *AccountStruct {
 	return &AccountStruct{
-		URI:    uri,
-		APIKEY: apikey,
+		URI:     uri,
+		APIKEY:  apikey,
+		SERVICE: service,
 		periodUsage: prometheus.NewDesc(
 			prometheus.BuildFQName(namespace, "", "period_usage_daily"),
 			"Account Usage Size in bytes",
@@ -58,13 +60,23 @@ func (e *AccountStruct) Describe(ch chan<- *prometheus.Desc) {
 // as Prometheus metrics.
 func (e *AccountStruct) collect(ch chan<- prometheus.Metric) error {
 	log.Debugln("---------------------- SCRAPER ACCOUNT SIZE ----------------------------------")
+
 	// Get current date
 	currentTime := time.Now().Local().Format("2006-01-02")
 	log.Debugln("Current Date:", currentTime)
-
 	safeAccountID := url.QueryEscape(e.URI)
+	var parseUrl string
+	// Create parse url per service
+	if e.SERVICE == "logentries" {
+		parseUrl = fmt.Sprintf("https://rest.logentries.com/usage/accounts/%s?from=%s&to=%s", safeAccountID, currentTime, currentTime)
+		log.Debugln(parseUrl)
+	} else if e.SERVICE == "rapid7" {
+		parseUrl = fmt.Sprintf("https://eu.rest.logs.insight.rapid7.com/usage/organizations?from=%s&to=%s", currentTime, currentTime)
+		log.Debugln(parseUrl)
+	}
+
 	// Build the request
-	url := fmt.Sprintf("https://rest.logentries.com/usage/accounts/%s?from=%s&to=%s", safeAccountID, currentTime, currentTime)
+	url := parseUrl
 	req, err := http.NewRequest("GET", url, nil)
 	req.Header.Set("x-api-key", e.APIKEY)
 	if err != nil {

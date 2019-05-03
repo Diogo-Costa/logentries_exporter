@@ -1,47 +1,7 @@
-# This file is intended as a starting point for a customized makefile for a Go project.
-# 
-# Targets:
-# 	all: Format, check, build, and test the code
-#   setup: Install build/test toolchain dependencies (e.g. gox)
-#   lint: Run linters against source code
-# 	format: Format the source files
-# 	build: Build the command(s) for target OS/arch combinations
-# 	install: Install the command(s)
-# 	clean: Clean the build/test artifacts
-#   report: Generate build/test reports
-#	check: Run tests
-#   bench: Run benchmarks
-#   dist: zip/tar binaries & documentation
-#	debug: print parameters
-# 
-# Parameters:
-# 	VERSION: release version in semver format
-#	BUILD_TAGS: additional build tags to pass to go build
-#	DISTDIR: path to save distribution files
-#	RPTDIR: path to save build/test reports
-# 
-# Assumptions:
-#   - Your package contains a cmd/ package, containing a directory for each produced binary.
-#   - You have cloc installed and accessible in the PATH.
-#   - Your GOPATH and GOROOT are set correctly.
-#   - Your makefile is in the root of your package and does not have a space in its file name.
-#   - Your root package contains global string variables Version and Build, to receive the bild version number and commit ID, respectively.
-# 
-# Features:
-#   - report generates files that can be consumed by Jenkins, as well as a list of external dependencies.
-#   - setup installs all the tools aside from cloc.
-#   - Works on Windows and with paths containing spaces.
-#   - Works when executing from outside the makefile directory using -f.
-#   - Targets are useful both in CI and developer workstations.
-#   - Handles cross-compiation for multiple OSes and architectures.
-#   - Bundles binaries and documentation into compressed archives, using tar/gz for Linux and Darwin, and zip for Windows.
-
-
 # Parameters
 PKG = github.com/logentries_exporter
 NAME = logentries_exporter
 DOC = README.md LICENSE
-
 
 # Replace backslashes with forward slashes for use on Windows.
 # Make is !@#$ing weird.

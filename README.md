@@ -11,6 +11,8 @@ Simple server that scrapes `logentries` metrics endpoint and exports them as Pro
       ID Logentries account for scraper. (required)
   --apikey string
       ApiKey to connect logentries metrics. (required)
+  --service string
+      Select service used in scraper (required) (options: `logentries` or `rapid7`)
   --isDebug bool
     	Output verbose debug information. (default -> "false")
 ```
@@ -29,7 +31,7 @@ logentries_period_usage_daily{account="Your account name"} XXXXXX
 ## Building and running
 ```
 $ go build
-$ ./logentries_exporter --logentriesID xxxx-xxxx-xxxx-xxxx --apikey xxxx-xxxx-xxxx-xxxx
+$ ./logentries_exporter --logentriesID xxxx-xxxx-xxxx-xxxx --apikey xxxx-xxxx-xxxx-xxxx --service XXXX
 ```
 
 ## Contribute
