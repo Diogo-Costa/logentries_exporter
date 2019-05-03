@@ -11,7 +11,7 @@ Simple server that scrapes `logentries` metrics endpoint and exports them as Pro
       ID Logentries account for scraper. (required)
   --apikey string
       ApiKey to connect logentries metrics. (required)
-  --debug bool
+  --isDebug bool
     	Output verbose debug information. (default -> "false")
 ```
 
@@ -23,9 +23,6 @@ The exporter collects the following metrics:
 # HELP logentries_period_usage_daily Account Usage Size in bytes.
 # TYPE logentries_period_usage_daily gauge
 logentries_period_usage_daily{account="Your account name"} XXXXXX
-# HELP logentries_log_usage_daily Log Usage Size in bytes.
-# TYPE logentries_log_usage_daily gauge
-logentries_log_usage_daily{logname="Log Name", logset="Logset Name", logid="ID Log"} XXXXXX
 ...
 ```
 
