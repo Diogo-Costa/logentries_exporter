@@ -83,28 +83,6 @@ func (e *LogsStruct) Describe(ch chan<- *prometheus.Desc) {
 	ch <- e.periodUsage
 }
 
-func requestHTTP(url, apikey string) *http.Response {
-	// Build the request
-	req, err := http.NewRequest("GET", url, nil)
-	req.Header.Set("x-api-key", apikey)
-	if err != nil {
-		log.Fatal("NewRequest: ", err)
-	}
-	client := &http.Client{}
-	resp, err := client.Do(req)
-	if err != nil {
-		log.Fatal("Do: ", err)
-	}
-	if resp.StatusCode >= 200 && resp.StatusCode <= 299 {
-		log.Debugln("Logs Status Code:", resp.StatusCode)
-	} else {
-		log.Errorln("Logs Status Code:", resp.StatusCode)
-
-	}
-
-	return resp
-}
-
 // Collect fetches the stats from configured location and delivers them
 // as Prometheus metrics.
 func (e *LogsStruct) collect(ch chan<- prometheus.Metric) error {

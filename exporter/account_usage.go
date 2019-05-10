@@ -64,25 +64,10 @@ func (e *AccountStruct) collect(ch chan<- prometheus.Metric) error {
 	parseURL := fmt.Sprintf("https://eu.rest.logs.insight.rapid7.com/usage/organizations?from=%s&to=%s", currentTime, currentTime)
 	log.Debugln(parseURL)
 
-	// Build the request
-	req, err := http.NewRequest("GET", parseURL, nil)
-	req.Header.Set("x-api-key", e.APIKEY)
-	if err != nil {
-		log.Fatal("NewRequest: ", err)
-	}
-	client := &http.Client{}
-	resp, err := client.Do(req)
-	if err != nil {
-		log.Fatal("Do: ", err)
-	}
-	if resp.StatusCode >= 200 && resp.StatusCode <= 299 {
-		log.Debugln("Account Status Code:", resp.StatusCode)
-	} else {
-		log.Errorln("Account Status Code:", resp.StatusCode)
-	}
-	defer resp.Body.Close()
+	responseAccount := requestHTTP(parseURL, e.APIKEY)
+	defer responseAccount.Body.Close()
 	var record jsonData
-	if err := json.NewDecoder(resp.Body).Decode(&record); err != nil {
+	if err := json.NewDecoder(responseAccount.Body).Decode(&record); err != nil {
 		log.Fatal(err)
 	}
 
