@@ -3,7 +3,6 @@ package exporter
 import (
 	"fmt"
 	"net/http"
-	"net/url"
 	"sync"
 	"time"
 
@@ -19,28 +18,24 @@ const (
 
 // Structs
 type jsonData struct {
-	Id          string `json:"id"`
+	ID          string `json:"id"`
 	Name        string `json:"name"`
 	PeriodUsage int    `json:"period_usage"`
 }
 
+// AccountStruct is return for Colletor prometheus
 type AccountStruct struct {
-	URI     string
-	APIKEY  string
-	SERVICE string
-	mutex   sync.Mutex
-	client  *http.Client
-
-	Id          *prometheus.Desc
+	APIKEY      string
+	mutex       sync.Mutex
+	client      *http.Client
+	ID          *prometheus.Desc
 	periodUsage *prometheus.Desc
 }
 
-// NewExporter returns an initialized Exporter.
-func AccountGetUsage(uri string, apikey string, service string) *AccountStruct {
+// AccountGetUsage returns an initialized Exporter.
+func AccountGetUsage(apikey string) *AccountStruct {
 	return &AccountStruct{
-		URI:     uri,
-		APIKEY:  apikey,
-		SERVICE: service,
+		APIKEY: apikey,
 		periodUsage: prometheus.NewDesc(
 			prometheus.BuildFQName(namespace, "", "period_usage_daily"),
 			"Account Usage Size in bytes",
@@ -64,37 +59,15 @@ func (e *AccountStruct) collect(ch chan<- prometheus.Metric) error {
 	// Get current date
 	currentTime := time.Now().Local().Format("2006-01-02")
 	log.Debugln("Current Date:", currentTime)
-	safeAccountID := url.QueryEscape(e.URI)
-	var parseUrl string
-	// Create parse url per service
-	if e.SERVICE == "logentries" {
-		parseUrl = fmt.Sprintf("https://rest.logentries.com/usage/accounts/%s?from=%s&to=%s", safeAccountID, currentTime, currentTime)
-		log.Debugln(parseUrl)
-	} else if e.SERVICE == "rapid7" {
-		parseUrl = fmt.Sprintf("https://eu.rest.logs.insight.rapid7.com/usage/organizations?from=%s&to=%s", currentTime, currentTime)
-		log.Debugln(parseUrl)
-	}
 
-	// Build the request
-	url := parseUrl
-	req, err := http.NewRequest("GET", url, nil)
-	req.Header.Set("x-api-key", e.APIKEY)
-	if err != nil {
-		log.Fatal("NewRequest: ", err)
-	}
-	client := &http.Client{}
-	resp, err := client.Do(req)
-	if err != nil {
-		log.Fatal("Do: ", err)
-	}
-	if resp.StatusCode >= 200 && resp.StatusCode <= 299 {
-		log.Debugln("Account Status Code:", resp.StatusCode)
-	} else {
-		log.Errorln("Account Status Code:", resp.StatusCode)
-	}
-	defer resp.Body.Close()
+	// Create parse url per service
+	parseURL := fmt.Sprintf("https://eu.rest.logs.insight.rapid7.com/usage/organizations?from=%s&to=%s", currentTime, currentTime)
+	log.Debugln(parseURL)
+
+	responseAccount := requestHTTP(parseURL, e.APIKEY)
+	defer responseAccount.Body.Close()
 	var record jsonData
-	if err := json.NewDecoder(resp.Body).Decode(&record); err != nil {
+	if err := json.NewDecoder(responseAccount.Body).Decode(&record); err != nil {
 		log.Fatal(err)
 	}
 
