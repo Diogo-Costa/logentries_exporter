@@ -21,9 +21,9 @@ The exporter collects the following metrics:
 # HELP logentries_period_usage_daily Account Usage Size in bytes.
 # TYPE logentries_period_usage_daily gauge
 logentries_period_usage_daily{account="Your account name"} XXXXXX
-# HELP logentries_log_usage_daily Log Usage Size in bytes (d-1)
+# HELP logentries_log_usage_daily Log Usage Size in bytes (d-1).
 # TYPE logentries_log_usage_daily gauge
-logentries_log_usage_daily{logID="XXXXXXXX-XXXX-XXXX-XXXX-XXXXXXXXXXXX",logName="XXX-XXXXXXXXXX",logSet="XXXXXXX"} XXXXX
+logentries_log_usage_daily{logID="XXXXXX-XXX-XXX-XXX-XXXXXXXXX",logName="XXX-XXXXXXX",logSet="XXXXXXX"} XXXXX
 ...
 ```
 
@@ -35,6 +35,3 @@ $ ./logentries_exporter --apikey xxxx-xxxx-xxxx-xxxx -
 
 ## Contribute
 Feel free to open an issue or PR if you have suggestions or ideas about what to add.
-
-## TODO
-- Create suite test
