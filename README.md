@@ -4,7 +4,7 @@ Simple server that scrapes `logentries/rapid7` metrics endpoint and exports them
 ## Flags/Arguments
 ```
   --telemetry.address string
-        Address on which to expose metrics. (default -> ":9578")
+        Address on which to expose metrics. (default -> ":9582")
   --metricsPath string
         Path under which to expose metrics. (default -> "/metrics")
   --apikey string
@@ -30,7 +30,7 @@ logentries_log_usage_daily{logID="XXXXXX-XXX-XXX-XXX-XXXXXXXXX",logName="XXX-XXX
 ## Building and running
 ```
 $ go build
-$ ./logentries_exporter --apikey xxxx-xxxx-xxxx-xxxx -
+$ ./logentries_exporter --apikey xxxx-xxxx-xxxx-xxxx
 ```
 
 ## Contribute
