@@ -1,4 +1,6 @@
 # Logentries/Rapid7 Exporter for Prometheus
+[![Go Report Card](https://goreportcard.com/report/github.com/Diogo-Costa/logentries_exporter)](https://goreportcard.com/report/github.com/Diogo-Costa/logentries_exporter)
+
 Simple server that scrapes `logentries/rapid7` metrics endpoint and exports them as Prometheus metrics.
 
 ## Flags/Arguments
@@ -18,9 +20,9 @@ The exporter collects the following metrics:
 
 **Metrics:**
 ```
-# HELP logentries_period_usage_daily Account Usage Size in bytes.
-# TYPE logentries_period_usage_daily gauge
-logentries_period_usage_daily{account="Your account name"} XXXXXX
+# HELP logentries_size_month_size_total Account size month in bytes.
+# TYPE logentries_size_month_size_total gauge
+logentries_size_month_size_total{account="Your account name"} XXXXXX
 # HELP logentries_log_usage_daily Log Usage Size in bytes (d-1).
 # TYPE logentries_log_usage_daily gauge
 logentries_log_usage_daily{logID="XXXXXX-XXX-XXX-XXX-XXXXXXXXX",logName="XXX-XXXXXXX",logSet="XXXXXXX"} XXXXX

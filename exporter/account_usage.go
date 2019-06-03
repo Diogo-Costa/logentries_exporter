@@ -16,6 +16,11 @@ const (
 	namespace = "logentries" //for Prometheus metrics.
 )
 
+var (
+	y int
+	m time.Month
+)
+
 // Structs
 type jsonData struct {
 	ID          string `json:"id"`
@@ -37,8 +42,8 @@ func AccountGetUsage(apikey string) *AccountStruct {
 	return &AccountStruct{
 		APIKEY: apikey,
 		periodUsage: prometheus.NewDesc(
-			prometheus.BuildFQName(namespace, "", "period_usage_daily"),
-			"Account Usage Size in bytes",
+			prometheus.BuildFQName(namespace, "", "size_month_size_total"),
+			"Account size month in bytes",
 			[]string{"account"},
 			nil),
 		client: &http.Client{},
@@ -51,17 +56,24 @@ func (e *AccountStruct) Describe(ch chan<- *prometheus.Desc) {
 	ch <- e.periodUsage
 }
 
+func monthInterval(y int, m time.Month) (firstDay, lastDay time.Time) {
+	firstDay = time.Date(y, m, 1, 0, 0, 0, 0, time.UTC)
+	lastDay = time.Date(y, m+1, 1, 0, 0, 0, -1, time.UTC)
+	return firstDay, lastDay
+}
+
 // Collect fetches the stats from configured location and delivers them
 // as Prometheus metrics.
 func (e *AccountStruct) collect(ch chan<- prometheus.Metric) error {
 	log.Debugln("---------------------- SCRAPER ACCOUNT SIZE ----------------------------------")
 
-	// Get current date
-	currentTime := time.Now().Local().Format("2006-01-02")
-	log.Debugln("Current Date:", currentTime)
+	// Get first and last day of month
+	y, m, _ = time.Now().Date()
+	firstDayMonth, lastDayMonth := monthInterval(y, m)
+	log.Debugf("Dates: %s - %s\n", firstDayMonth.Format("2006-01-02"), lastDayMonth.Format("2006-01-02"))
 
 	// Create parse url per service
-	parseURL := fmt.Sprintf("https://eu.rest.logs.insight.rapid7.com/usage/organizations?from=%s&to=%s", currentTime, currentTime)
+	parseURL := fmt.Sprintf("https://eu.rest.logs.insight.rapid7.com/usage/organizations?from=%s&to=%s", firstDayMonth.Format("2006-01-02"), lastDayMonth.Format("2006-01-02"))
 	log.Debugln(parseURL)
 
 	responseAccount := requestHTTP(parseURL, e.APIKEY)
