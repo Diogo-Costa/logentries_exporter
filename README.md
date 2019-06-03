@@ -1,5 +1,6 @@
 # Logentries/Rapid7 Exporter for Prometheus
-[![Go Report Card](https://goreportcard.com/report/github.com/Diogo-Costa/logentries_exporter)](https://goreportcard.com/report/github.com/Diogo-Costa/logentries_exporter)
+
+[![Go Report Card](https://goreportcard.com/badge/Diogo-Costa/logentries_exporter)](https://goreportcard.com/report/Diogo-Costa/logentries_exporter) 
 
 Simple server that scrapes `logentries/rapid7` metrics endpoint and exports them as Prometheus metrics.
 
