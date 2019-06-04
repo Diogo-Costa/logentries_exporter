@@ -17,13 +17,13 @@ var (
 	listeningAddress = flag.String("telemetry.address", ":9582", "Address on which to expose metrics.")
 	metricsPath      = flag.String("telemetry.endpoint", "/metrics", "Path under which to expose metric.")
 	apikey           = flag.String("apikey", "", "APIKEY to connect logentries metrics.")
-	isDebug          = flag.Bool("isDebug", false, "Output verbose debug information.")
+	isDebug          = flag.String("isDebug", "false", "Output verbose debug information.")
 )
 
 func main() {
 	flag.Parse()
 
-	if *isDebug {
+	if *isDebug == "true" {
 		log.SetLevel(log.DebugLevel)
 		log.Debugln("Enabling debug output")
 	} else {
