@@ -12,7 +12,7 @@ Simple server that scrapes `logentries/rapid7` metrics endpoint and exports them
         Path under which to expose metrics. (default -> "/metrics")
   --apikey string
         ApiKey to connect logentries metrics. (required)
-  --isDebug bool
+  --isDebug string
         Output verbose debug information. (default -> "false")
 ```
 
@@ -27,6 +27,9 @@ logentries_size_month_size_total{account="Your account name"} XXXXXX
 # HELP logentries_log_usage_daily Log Usage Size in bytes (d-1).
 # TYPE logentries_log_usage_daily gauge
 logentries_log_usage_daily{logID="XXXXXX-XXX-XXX-XXX-XXXXXXXXX",logName="XXX-XXXXXXX",logSet="XXXXXXX"} XXXXX
+# HELP logentries_log_usage_up Was the last scrape of log usage Size successful (0-successful / 1-Fail)
+# TYPE logentries_log_usage_up gauge
+logentries_log_usage_up 0
 ...
 ```
 

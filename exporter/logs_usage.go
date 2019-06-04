@@ -58,10 +58,11 @@ type responseLogStesStruct struct {
 
 // LogsStruct is return for Colletor prometheus
 type LogsStruct struct {
-	APIKEY      string
-	mutex       sync.Mutex
-	client      *http.Client
-	periodUsage *prometheus.Desc
+	APIKEY        string
+	mutex         sync.Mutex
+	client        *http.Client
+	periodUsage   *prometheus.Desc
+	periodUsageUp *prometheus.Desc
 }
 
 // LogsGetUsage returns an initialized Exporter.
@@ -72,6 +73,11 @@ func LogsGetUsage(apikey string) *LogsStruct {
 			prometheus.BuildFQName(namespace, "", "log_usage_daily"),
 			"Log Usage Size in bytes (d-1)",
 			[]string{"logID", "logName", "logSet"},
+			nil),
+		periodUsageUp: prometheus.NewDesc(
+			prometheus.BuildFQName(namespace, "", "log_usage_up"),
+			"Was the last scrape of log usage Size successful (0-successful / 1-Fail)",
+			[]string{},
 			nil),
 		client: &http.Client{},
 	}
@@ -108,16 +114,21 @@ func (e *LogsStruct) collect(ch chan<- prometheus.Metric) error {
 		log.Fatal(err)
 	}
 
-	for _, logs := range recordLogsStruct.PerDayUsage.Usage {
-		for _, logUsage := range logs.LogUsage {
-			for _, logName := range recordLogStesStruct.Logs {
-				for _, logSetName := range logName.LogsetsInfo {
-					if logUsage.ID == logName.ID {
-						log.Debugln("LogStet: ", logSetName.Name)
-						log.Debugln("ID: ", logUsage.ID)
-						log.Debugln("Name: ", logName.Name)
-						log.Debugln("Size: ", logUsage.Usage)
-						ch <- prometheus.MustNewConstMetric(e.periodUsage, prometheus.GaugeValue, float64(logUsage.Usage), logUsage.ID, logName.Name, logSetName.Name)
+	// Check if return dont is empty
+	if len(recordLogsStruct.PerDayUsage.Usage) == 0 {
+		ch <- prometheus.MustNewConstMetric(e.periodUsageUp, prometheus.GaugeValue, 0)
+	} else {
+		for _, logs := range recordLogsStruct.PerDayUsage.Usage {
+			for _, logUsage := range logs.LogUsage {
+				for _, logName := range recordLogStesStruct.Logs {
+					for _, logSetName := range logName.LogsetsInfo {
+						if logUsage.ID == logName.ID {
+							log.Debugln("LogStet: ", logSetName.Name)
+							log.Debugln("ID: ", logUsage.ID)
+							log.Debugln("Name: ", logName.Name)
+							log.Debugln("Size: ", logUsage.Usage)
+							ch <- prometheus.MustNewConstMetric(e.periodUsage, prometheus.GaugeValue, float64(logUsage.Usage), logUsage.ID, logName.Name, logSetName.Name)
+						}
 					}
 				}
 			}
