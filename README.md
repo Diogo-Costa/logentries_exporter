@@ -32,7 +32,6 @@ logentries_log_usage_daily{logID="XXXXXX-XXX-XXX-XXX-XXXXXXXXX",logName="XXX-XXX
 logentries_log_usage_up 0
 ...
 ```
-
 ## Building and running
 ```
 $ go build
