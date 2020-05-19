@@ -12,6 +12,8 @@ Simple server that scrapes `logentries/rapid7` metrics endpoint and exports them
         Path under which to expose metrics. (default -> "/metrics")
   --apikey string
         ApiKey to connect logentries metrics. (required)
+  --region string
+        Region logentries (us, eu, ca or au). (default -> "us")
   --isDebug string
         Output verbose debug information. (default -> "false")
 ```
@@ -35,6 +37,7 @@ logentries_log_usage_up 0
 
 ## Building and running
 ```
+$ make setup
 $ go build
 $ ./logentries_exporter --apikey xxxx-xxxx-xxxx-xxxx
 ```

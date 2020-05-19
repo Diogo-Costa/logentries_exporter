@@ -1,6 +1,7 @@
 package exporter
 
 import (
+	"fmt"
 	"net/http"
 	"sync"
 
@@ -59,6 +60,7 @@ type responseLogStesStruct struct {
 // LogsStruct is return for Colletor prometheus
 type LogsStruct struct {
 	APIKEY        string
+	REGION        string
 	mutex         sync.Mutex
 	client        *http.Client
 	periodUsage   *prometheus.Desc
@@ -66,9 +68,10 @@ type LogsStruct struct {
 }
 
 // LogsGetUsage returns an initialized Exporter.
-func LogsGetUsage(apikey string) *LogsStruct {
+func LogsGetUsage(apikey string, region string) *LogsStruct {
 	return &LogsStruct{
 		APIKEY: apikey,
+		REGION: region,
 		periodUsage: prometheus.NewDesc(
 			prometheus.BuildFQName(namespace, "", "log_usage_daily"),
 			"Log Usage Size in bytes (d-1)",
@@ -95,7 +98,7 @@ func (e *LogsStruct) collect(ch chan<- prometheus.Metric) error {
 	log.Debugln("---------------------- SCRAPER LOGS SIZE ----------------------------------")
 
 	// Create parse url to capture all sizes logs
-	parseLogsURL := "https://eu.rest.logs.insight.rapid7.com/usage/organizations/logs?time_range=yesterday&interval=day"
+	parseLogsURL := fmt.Sprintf("https://%s.rest.logs.insight.rapid7.com/usage/organizations/logs?time_range=yesterday&interval=day", e.REGION)
 	log.Debugln(parseLogsURL)
 	responseLogs := requestHTTP(parseLogsURL, e.APIKEY)
 	defer responseLogs.Body.Close()
@@ -105,7 +108,7 @@ func (e *LogsStruct) collect(ch chan<- prometheus.Metric) error {
 	}
 
 	// Create parse url to capture all logs in account
-	parseLogSetsURL := "https://eu.rest.logs.insight.rapid7.com/management/logs"
+	parseLogSetsURL := fmt.Sprintf("https://%s.rest.logs.insight.rapid7.com/management/logs", e.REGION)
 	log.Debugln(parseLogSetsURL)
 	responseLogStes := requestHTTP(parseLogSetsURL, e.APIKEY)
 	defer responseLogStes.Body.Close()

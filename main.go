@@ -17,6 +17,7 @@ var (
 	listeningAddress = flag.String("telemetry.address", ":9582", "Address on which to expose metrics.")
 	metricsPath      = flag.String("telemetry.endpoint", "/metrics", "Path under which to expose metric.")
 	apikey           = flag.String("apikey", "", "APIKEY to connect logentries metrics.")
+	region           = flag.String("region", "us", "Region logentries (us, eu, ca or au).")
 	isDebug          = flag.String("isDebug", "false", "Output verbose debug information.")
 )
 
@@ -37,10 +38,10 @@ func main() {
 	log.Infoln("Starting logentries_exporter", version.Info())
 
 	// Scraper AccountUsage
-	prometheus.MustRegister(exporter.AccountGetUsage(*apikey))
+	prometheus.MustRegister(exporter.AccountGetUsage(*apikey,*region))
 
 	// Scraper LogsUsage
-	prometheus.MustRegister(exporter.LogsGetUsage(*apikey))
+	prometheus.MustRegister(exporter.LogsGetUsage(*apikey,*region))
 
 	// Scraper Exporter version
 	prometheus.MustRegister(version.NewCollector("logentries_exporter"))

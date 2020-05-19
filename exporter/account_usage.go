@@ -31,6 +31,7 @@ type jsonData struct {
 // AccountStruct is return for Colletor prometheus
 type AccountStruct struct {
 	APIKEY      string
+	REGION      string
 	mutex       sync.Mutex
 	client      *http.Client
 	ID          *prometheus.Desc
@@ -38,9 +39,10 @@ type AccountStruct struct {
 }
 
 // AccountGetUsage returns an initialized Exporter.
-func AccountGetUsage(apikey string) *AccountStruct {
+func AccountGetUsage(apikey string, region string) *AccountStruct {
 	return &AccountStruct{
 		APIKEY: apikey,
+		REGION: region,
 		periodUsage: prometheus.NewDesc(
 			prometheus.BuildFQName(namespace, "", "size_month_size_total"),
 			"Account size month in bytes",
@@ -73,7 +75,8 @@ func (e *AccountStruct) collect(ch chan<- prometheus.Metric) error {
 	log.Debugf("Dates: %s - %s\n", firstDayMonth.Format("2006-01-02"), lastDayMonth.Format("2006-01-02"))
 
 	// Create parse url per service
-	parseURL := fmt.Sprintf("https://eu.rest.logs.insight.rapid7.com/usage/organizations?from=%s&to=%s", firstDayMonth.Format("2006-01-02"), lastDayMonth.Format("2006-01-02"))
+	parseURL := fmt.Sprintf("https://%s.rest.logs.insight.rapid7.com/usage/organizations?from=%s&to=%s", 
+		e.REGION, firstDayMonth.Format("2006-01-02"), lastDayMonth.Format("2006-01-02"))
 	log.Debugln(parseURL)
 
 	responseAccount := requestHTTP(parseURL, e.APIKEY)
